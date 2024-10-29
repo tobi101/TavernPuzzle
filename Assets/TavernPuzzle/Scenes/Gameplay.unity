@@ -42,7 +42,8 @@ RenderSettings:
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
   m_GISettings:
     serializedVersion: 2
     m_BounceScale: 1
@@ -284,7 +285,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc0afa027445a904aa7142198bad985c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _sceneRootBinder: {fileID: 0}
+  _sceneUIRootPrefab: {fileID: 8800623053582802225, guid: 45caf619cc2677048a8437253230fe6e, type: 3}
 --- !u!4 &1689611088
 Transform:
   m_ObjectHideFlags: 0

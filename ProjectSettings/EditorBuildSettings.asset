@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/TavernPuzzle/Scenes/Boot.unity
     guid: 0d2b2f1015a133543be39fc39c106e28
   - enabled: 1
+    path: Assets/TavernPuzzle/Scenes/MainMenu.unity
+    guid: 18c26288b680d474fa25a64e9ede8523
+  - enabled: 1
     path: Assets/TavernPuzzle/Scenes/Gameplay.unity
     guid: 3d22217d5986c5f49817562d897f4f75
   m_configObjects:

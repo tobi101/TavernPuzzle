@@ -1,8 +1,12 @@
 using System.Collections;
+using BaCon;
 using TavernPuzzle.Scripts.Utils;
 using TavernPuzzle.Scripts.Game.Gameplay.Root;
+using TavernPuzzle.Scripts.Game.MainMenu.Root;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using R3;
+using TavernPuzzle.Scripts.Services;
 
 
 namespace TavernPuzzle.Scripts
@@ -10,8 +14,13 @@ namespace TavernPuzzle.Scripts
     public class GameEntryPoint
     {
         private static GameEntryPoint _instance;
+        
         private Coroutines _coroutines;
+        
         private UIRootView _uiRoot;
+        
+        private readonly DIContainer _rootContainer = new();
+        private DIContainer _cachedSceneContainer;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void AutostartGame()
@@ -31,6 +40,9 @@ namespace TavernPuzzle.Scripts
             var prefabUIRoot = Resources.Load<UIRootView>("UIRoot");
             _uiRoot = Object.Instantiate(prefabUIRoot);
             Object.DontDestroyOnLoad(_uiRoot.gameObject);
+            
+            _rootContainer.RegisterInstance(_uiRoot);
+            _rootContainer.RegisterFactory(_ => new SomeCommonService()).AsSingle();
         }
 
         private void RunGame()
@@ -40,7 +52,14 @@ namespace TavernPuzzle.Scripts
 
             if (sceneName == Scenes.GAMEPLAY)
             {
-                _coroutines.StartCoroutine(LoadAndStartGameplay());
+                var enterParams = new GameplayEnterParams("ddd.save", 1); 
+                _coroutines.StartCoroutine(LoadAndStartGameplay(enterParams));
+                return;
+            }
+
+            if (sceneName == Scenes.MAIN_MENU)
+            {
+                _coroutines.StartCoroutine(LoadAndStartMainMenu());
                 return;
             }
 
@@ -49,19 +68,59 @@ namespace TavernPuzzle.Scripts
                 return;
             }
 #endif
-            _coroutines.StartCoroutine(LoadAndStartGameplay());
+            _coroutines.StartCoroutine(LoadAndStartMainMenu());
         }
-        private IEnumerator LoadAndStartGameplay()
+        private IEnumerator LoadAndStartGameplay(GameplayEnterParams enterParams)
         {
             _uiRoot.ShowLoadingScreen();
+            _cachedSceneContainer?.Dispose();
 
             yield return LoadScene(Scenes.BOOT);
             yield return LoadScene(Scenes.GAMEPLAY);
 
-            yield return new WaitForSeconds(2);
+            yield return new WaitForSeconds(1);
 
             var sceneEntryPoint = Object.FindFirstObjectByType<GameplayEntryPoint>();
-            sceneEntryPoint.Run();
+            
+            _cachedSceneContainer = new DIContainer(_rootContainer);
+
+            var gameplayContainer = _cachedSceneContainer;
+            
+            sceneEntryPoint.Run(gameplayContainer, enterParams).Subscribe(gameplayExitParams => 
+            {
+                _coroutines.StartCoroutine(LoadAndStartMainMenu(gameplayExitParams.MainMenuEnterParams));
+            });
+
+            _uiRoot.HideLoadingScreen();
+        }
+
+        private IEnumerator LoadAndStartMainMenu(MainMenuEnterParams enterParams = null)
+        {
+            _uiRoot.ShowLoadingScreen();
+            _cachedSceneContainer?.Dispose();
+
+            yield return LoadScene(Scenes.BOOT);
+            yield return LoadScene(Scenes.MAIN_MENU);
+
+            yield return new WaitForSeconds(1);
+
+            var sceneEntryPoint = Object.FindFirstObjectByType<MainMenuEntryPoint>();
+            
+            _cachedSceneContainer = new DIContainer(_rootContainer);
+            
+            var mainMenuContainer = _cachedSceneContainer;
+            
+            sceneEntryPoint.Run(mainMenuContainer, enterParams).Subscribe(mainMenuExitParams =>
+            {
+                var targetSceneName = mainMenuExitParams.TargetSceneEnterParams.SceneName;
+
+                if (targetSceneName == Scenes.GAMEPLAY) 
+                {
+                    _coroutines.StartCoroutine(LoadAndStartGameplay(mainMenuExitParams.TargetSceneEnterParams.As<GameplayEnterParams>()));
+                }
+
+
+            });
 
             _uiRoot.HideLoadingScreen();
         }
